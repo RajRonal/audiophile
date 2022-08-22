@@ -1,11 +1,13 @@
 package handlers
 
 import (
+	"audioPhile/database"
 	"audioPhile/database/helper"
 	"audioPhile/models"
 	"encoding/json"
 	"github.com/go-chi/chi/v5"
 	"github.com/gofrs/uuid"
+	"github.com/jmoiron/sqlx"
 	"github.com/sirupsen/logrus"
 	"net/http"
 )
@@ -52,13 +54,25 @@ func AddProductToCart(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	sessionId, err := uuid.FromString(context.SessionID)
+	//sessionId, err := uuid.FromString(context.SessionID)
+	//if err != nil {
+	//	logrus.Error(" AddProductToCart:Error in conversion: %v", err)
+	//	writer.WriteHeader(http.StatusBadRequest)
+	//	return
+	//}
+	//userId,err:=uuid.FromString(context.ID)
+	//if err!=nil{
+	//	logrus.Error(" AddProductToCart:Error in conversion: %v", err)
+	//	writer.WriteHeader(http.StatusBadRequest)
+	//	return
+	//}
+	sessionID, err := helper.CreateCartSession(context.ID)
+	sessionId, err := uuid.FromString(sessionID)
 	if err != nil {
 		logrus.Error(" AddProductToCart:Error in conversion: %v", err)
 		writer.WriteHeader(http.StatusBadRequest)
 		return
 	}
-
 	err = helper.AddToCart(sessionId, cartItem)
 	if err != nil {
 		logrus.Error(" AddProductToCart: Error in adding item to cart %v", err)
@@ -183,11 +197,11 @@ func BuyProduct(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	sessionId, err := uuid.FromString(ctx.SessionID)
-	if err != nil {
-		logrus.Error("BuyProduct:Error in conversion: %v", err)
-		return
-	}
+	//sessionId, err := uuid.FromString(ctx.SessionID)
+	//if err != nil {
+	//	logrus.Error("BuyProduct:Error in conversion: %v", err)
+	//	return
+	//}
 
 	//userId, err := uuid.FromString(ctx.ID)
 	//if err != nil {
@@ -198,6 +212,7 @@ func BuyProduct(writer http.ResponseWriter, request *http.Request) {
 	CartItemQuantity, err := helper.GetProductQuantity(productId)
 	if err != nil {
 		logrus.Error("BuyProduct:Error in fetching cart quantity: %v", err)
+		writer.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
@@ -215,24 +230,39 @@ func BuyProduct(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	RemainingQuantity := productQuantity - CartItemQuantity
-	err = helper.UpdateInventoryQuantity(inventoryId, RemainingQuantity)
+	sessionId, err := helper.GetCartSessionId(productId)
 	if err != nil {
-		logrus.Error("BuyProduct:Error Updating product quantity: %v", err)
-		writer.WriteHeader(http.StatusBadRequest)
+		logrus.Error("BuyProduct:Error in conversion: %v", err)
 		return
 	}
+	RemainingQuantity := productQuantity - CartItemQuantity
+	txErr := database.Tx(func(tx *sqlx.Tx) error {
+		err = helper.UpdateInventoryQuantity(inventoryId, RemainingQuantity)
+		if err != nil {
+			logrus.Error("BuyProduct:Error Updating product quantity: %v", err)
+			writer.WriteHeader(http.StatusBadRequest)
+			return err
+		}
 
-	err = helper.DeleteCart(sessionId)
-	if err != nil {
-		logrus.Error("BuyProduct:Error in deleting cart : %v", err)
-		writer.WriteHeader(http.StatusBadRequest)
+		err = helper.DeleteCart(sessionId, tx)
+		if err != nil {
+			logrus.Error("BuyProduct:Error in deleting cart : %v", err)
+			writer.WriteHeader(http.StatusBadRequest)
+			return err
+		}
+
+		return err
+
+	})
+
+	if txErr != nil {
+		writer.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 }
 
-func AddOrderDetails(writer http.ResponseWriter, request *http.Request) {
+func GetOrderDetails(writer http.ResponseWriter, request *http.Request) {
 	ctx := helper.GetContextData(request)
 	if ctx == nil {
 		writer.WriteHeader(http.StatusBadRequest)
@@ -275,26 +305,39 @@ func AddOrderDetails(writer http.ResponseWriter, request *http.Request) {
 		writer.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	quanity := float64(totalQuantity)
-	totalPrice := price * quanity
-	err = helper.AddOrderDetails(userId, paymentId, totalPrice)
-	if err != nil {
-		logrus.Error("AddOrderDetails:Error in  adding details: %v", err)
-		writer.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	orderDetails, err := helper.ShowOrderDetails(userId)
-	if err != nil {
-		logrus.Error("AddOrderDetails:Error in  showing details: %v", err)
-		writer.WriteHeader(http.StatusBadRequest)
-		return
-	}
+	quantity := float64(totalQuantity)
+	totalPrice := price * quantity
+	txErr := database.Tx(func(tx *sqlx.Tx) error {
+		err = helper.AddOrderDetails(userId, paymentId, totalPrice)
+		if err != nil {
+			logrus.Error("AddOrderDetails: Error in adding product details %v", err)
+			writer.WriteHeader(http.StatusBadRequest)
+			return err
+		}
+		orderDetails, err := helper.ShowOrderDetails(userId, tx)
+		if err != nil {
+			logrus.Error("AddOrderDetails: Error in showing product details %v", err)
+			writer.WriteHeader(http.StatusBadRequest)
+			return err
+		}
+		jsonData, jsonErr := json.Marshal(orderDetails)
+		if jsonErr != nil {
+			writer.WriteHeader(http.StatusInternalServerError)
+			return err
+		}
 
-	jsonData, jsonErr := json.Marshal(orderDetails)
-	if jsonErr != nil {
+		_, err = writer.Write(jsonData)
+		if err != nil {
+			writer.WriteHeader(http.StatusInternalServerError)
+			return err
+
+		}
+		return err
+
+	})
+	if txErr != nil {
 		writer.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	writer.Write(jsonData)
 }

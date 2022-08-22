@@ -16,5 +16,6 @@ require (
 	github.com/lib/pq v1.10.0 // indirect
 	github.com/sirupsen/logrus v1.9.0 // indirect
 	github.com/spf13/cobra v1.5.0 // indirect
+	golang.org/x/crypto v0.0.0-20220817201139-bc19a97f63c8 // indirect
 	google.golang.org/api v0.93.0 // indirect
 )

@@ -90,13 +90,20 @@ type App struct {
 }
 
 type ImageDetails struct {
-	ImageId    string `json:"imageId" db:"image_id"`
-	ProductId  string `json:"productId" db:"product_id"`
-	TotalCount int    `json:"-" db:"total_count"`
+	ProductId          string  `json:"productId"db:"product_id"`
+	ProductName        string  `json:"productName" db:"product_name"`
+	ProductDescription string  `json:"productDescription" db:"product_description"`
+	RegularPrice       float64 `json:"regularPrice" db:"regular_price"`
+	DiscountedPrice    float64 `json:"discountedPrice" db:"discounted_price"`
+	ImageId            string  `json:"imageId" db:"image_id"`
+	TotalCount         int     `json:"-" db:"total_count"`
 }
 
+type Image struct {
+	Images string `json:"images"`
+}
 type PaginatedImageDetails struct {
-	Images     []ImageDetails `json:"images"`
+	Details    []ImageDetails `json:"details"`
 	TotalCount int            `json:"totalCount"`
 }
 

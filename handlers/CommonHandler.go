@@ -5,11 +5,13 @@ import (
 	"audioPhile/database"
 	"audioPhile/database/helper"
 	"audioPhile/models"
+	"audioPhile/utilities"
 	"encoding/json"
 	"fmt"
 	"github.com/golang-jwt/jwt"
 	"github.com/jmoiron/sqlx"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/crypto/bcrypt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -26,6 +28,14 @@ func SignUp(writer http.ResponseWriter, request *http.Request) {
 		writer.WriteHeader(http.StatusBadRequest)
 		return
 	}
+
+	hashPassword, hashErr := utilities.HashPassword(userDetails.Password)
+	if hashErr != nil {
+		logrus.Error("SignUp : Error in hashing the password")
+		writer.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	userDetails.Password = hashPassword
 	//records, err := utilities.ReadData("./data.csv")
 	//
 	//if err != nil {
@@ -86,9 +96,14 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
 	}
 
-	if userDetails.Password != credentials.Password {
+	if compareErr := bcrypt.CompareHashAndPassword([]byte(userDetails.Password), []byte(credentials.Password)); compareErr != nil {
+		logrus.Printf("Signin : Error in comparing the passwords.")
 		w.WriteHeader(http.StatusUnauthorized)
+		return
 	}
+	//if userDetails.Password != credentials.Password {
+	//	w.WriteHeader(http.StatusUnauthorized)
+	//}
 
 	userRole, err := helper.GetRole(userDetails.UserId)
 	if err != nil {

@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="SqlDialectMappings">
+    <file url="file://$PROJECT_DIR$/database/helper/queries.go" dialect="PostgreSQL" />
     <file url="file://$PROJECT_DIR$/database/migrations/0001_initial.up.sql" dialect="PostgreSQL" />
     <file url="file://$PROJECT_DIR$/database/migrations/0002_product_detail.up.sql" dialect="PostgreSQL" />
     <file url="file://$PROJECT_DIR$/database/migrations/0003_Order_detail.up.sql" dialect="PostgreSQL" />
@@ -14,5 +15,6 @@
     <file url="file://$PROJECT_DIR$/database/migrations/0011_alter_Image_table.up.sql" dialect="PostgreSQL" />
     <file url="file://$PROJECT_DIR$/database/migrations/0012_Add_Default_coupon.up.sql" dialect="PostgreSQL" />
     <file url="file://$PROJECT_DIR$/database/migrations/0013_alter_user_address.up.sql" dialect="PostgreSQL" />
+    <file url="file://$PROJECT_DIR$/database/migrations/0014_addOn_up.sql" dialect="PostgreSQL" />
   </component>
 </project>

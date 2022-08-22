@@ -133,6 +133,7 @@ func CreateProduct(product []models.Product, categoryId, inventoryId uuid.UUID, 
 	psql := sqrl.StatementBuilder.PlaceholderFormat(sqrl.Dollar)
 	insertQuery := psql.Insert("product").Columns("product_name", "product_description", "regular_price", "discounted_price", "category_id", "inventory_id")
 	for _, products := range product {
+
 		insertQuery.Values(products.ProductName, products.ProductDescription, products.RegularPrice, products.DiscountedPrice, categoryId, inventoryId)
 	}
 
@@ -189,16 +190,27 @@ func CreateCoupon(couponDetails models.Coupon) error {
 	return nil
 }
 
-func GetAllProducts(pageNo, taskSize int, searchProduct string) (models.PaginatedProducts, error) {
-	var data models.PaginatedProducts
-	SQL := `WITH getProducts AS (SELECT  count(*) over ()total_count, product_id,product_name,product_description,regular_price,discounted_price
-			FROM product where product.product_name ILIKE '%' || $3 ||'%' AND  archived_at IS NULL)
+func GetAllProducts(pageNo, taskSize int, searchProduct string) (models.PaginatedImageDetails, error) {
+	var data models.PaginatedImageDetails
+	SQL := `WITH  getProducts AS (SELECT count(*) over () total_count,
+										product.product_id,
+										product_name,
+										product_description,
+										regular_price,
+										discounted_price,
+										image_id
+								 FROM product
+										  JOIN image_details ON product.product_id = image_details.product_id
+								 where product.product_name ILIKE '%' || $3 || '%'
+								   AND archived_at IS NULL)
+								
+								
 			
-			 SELECT  total_count,product_id,product_name,product_description, regular_price,discounted_price from getProducts 
-			        LIMIT $1
-					OFFSET $2`
+			SELECT total_count, product_id, product_name, product_description, regular_price, discounted_price,image_id 
+			from getProducts
+			LIMIT $1 OFFSET $2`
 
-	products := make([]models.SearchProducts, 0)
+	products := make([]models.ImageDetails, 0)
 	err := database.DB.Select(&products, SQL, taskSize, pageNo*taskSize, searchProduct)
 	if err != nil {
 		logrus.Error("SearchProduct: error in fetching Product: %v", err)
@@ -210,7 +222,7 @@ func GetAllProducts(pageNo, taskSize int, searchProduct string) (models.Paginate
 	}
 
 	data.TotalCount = products[0].TotalCount
-	data.Products = products
+	data.Details = products
 	return data, err
 }
 func UpdateCategory(categoryId uuid.UUID, categoryDetails models.ProductCategory) error {
@@ -298,7 +310,7 @@ func GetAllImageId(pageNo, taskSize int) (models.PaginatedImageDetails, error) {
 	}
 
 	data.TotalCount = images[0].TotalCount
-	data.Images = images
+	data.Details = images
 	return data, err
 }
 
@@ -425,18 +437,18 @@ func UpdateInventoryQuantity(inventoryId uuid.UUID, quantity int) error {
 	WHERE inventory_id =$2 and archived_at is null`
 	_, err := database.DB.Exec(SQL, quantity, inventoryId)
 	if err != nil {
-		logrus.Error("UpdateInventoryQuantity:error in updating Product  inventory quanity%v", err)
+		logrus.Error("UpdateInventoryQuantity:error in updating Product  inventory quantity%v", err)
 		return err
 	}
 
 	return nil
 }
 
-func DeleteCart(sessionId uuid.UUID) error {
+func DeleteCart(sessionId uuid.UUID, tx *sqlx.Tx) error {
 	SQL := `UPDATE cart_item
 	SET archived_at = now()
 	WHERE session_id = $1 and archived_at is null`
-	_, err := database.DB.Exec(SQL, sessionId)
+	_, err := tx.Exec(SQL, sessionId)
 	if err != nil {
 		logrus.Error("DeleteCar:error in deleting user Cart%v", err)
 		return err
@@ -458,11 +470,11 @@ func AddOrderDetails(userId, paymentId uuid.UUID, total float64) error {
 
 }
 
-func ShowOrderDetails(userId uuid.UUID) (models.OrderDetails, error) {
+func ShowOrderDetails(userId uuid.UUID, tc *sqlx.Tx) (models.OrderDetails, error) {
 	var orderDetails models.OrderDetails
 	SQL := `SELECT order_id,user_id,total,payment_id FROM order_details 
             WHERE user_id=$1`
-	err := database.DB.Get(&orderDetails, SQL, userId)
+	err := tc.Get(&orderDetails, SQL, userId)
 	if err != nil {
 		logrus.Error("ShowOrderDetails:Error in order details %v", err)
 		return orderDetails, err
@@ -496,4 +508,31 @@ func DeleteSession(sessionID string) error {
 		return err
 	}
 	return err
+}
+
+func CreateCartSession(userId string) (string, error) {
+	SQL := `INSERT INTO cart_sessions (user_id) 	
+			VALUES ($1)  
+			returning session_id;`
+	var sessID string
+	err := database.DB.Get(&sessID, SQL, userId)
+	if err != nil {
+		logrus.Error("CreateCartSession:Error in creating Session %v", err)
+		return "", err
+	}
+	return sessID, nil
+}
+
+func GetCartSessionId(productId uuid.UUID) (uuid.UUID, error) {
+	var sessionId uuid.UUID
+	SQL := `SELECT session_id FROM cart_item
+            WHERE product_id=$1`
+	err := database.DB.Get(&sessionId, SQL, productId)
+	if err != nil {
+		logrus.Error(" GetCartSessionId:Error in getting sessionId of cart %v", err)
+		return sessionId, err
+	}
+
+	return sessionId, nil
+
 }

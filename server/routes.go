@@ -36,7 +36,7 @@ func SetupRoutes() *Server {
 						inventory.Post("/", handlers.CreateProduct)
 						inventory.Route("/{productID}", func(product chi.Router) {
 							product.Post("/", handlers.UploadProductImage)
-							product.Get("/", handlers.GetAllImageDetails)
+							//product.Get("/", handlers.GetAllImageDetails)
 							product.Delete("/", handlers.DeleteProduct)
 							product.Put("/", handlers.UpdateProduct)
 
@@ -47,9 +47,9 @@ func SetupRoutes() *Server {
 		})
 		api.Route("/user", func(user chi.Router) {
 			user.Get("/products", handlers.GetAllProducts)
-			user.Route("/{productID}", func(image chi.Router) {
-				image.Get("/", handlers.GetAllImageDetails)
-			})
+			//user.Route("/{productID}", func(image chi.Router) {
+			//	//image.Get("/", handlers.GetAllImageDetails)
+			//})
 			user.Route("/cart", func(cart chi.Router) {
 				cart.Use(middleware.AuthMiddleware)
 				cart.Route("/address", func(address chi.Router) {
@@ -62,15 +62,18 @@ func SetupRoutes() *Server {
 
 				cart.Post("/addProduct", handlers.AddProductToCart)
 				cart.Route("/{productID}", func(new chi.Router) {
-					//new.Use(middleware.UserAddressAndQuantityValidateMiddleware)
+					new.Use(middleware.UserAddressAndQuantityValidateMiddleware)
 					new.Route("/buy", func(order chi.Router) {
 						order.Put("/", handlers.BuyProduct)
 						order.Post("/", handlers.AddPaymentDetails)
-						order.Route("/{paymentID}", func(payment chi.Router) {
-							payment.Get("/", handlers.AddOrderDetails)
-						})
+
 					})
 
+				})
+				cart.Route("/payment", func(payment chi.Router) {
+					payment.Route("/{paymentID}", func(pay chi.Router) {
+						pay.Get("/", handlers.GetOrderDetails)
+					})
 				})
 				cart.Get("/logout", handlers.SignOut)
 			})
