@@ -76,6 +76,7 @@ func SetupRoutes() *Server {
 					})
 				})
 				cart.Get("/logout", handlers.SignOut)
+				cart.Delete("/account", handlers.DeleteUserAccount)
 			})
 
 		})

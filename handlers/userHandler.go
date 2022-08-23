@@ -126,6 +126,7 @@ func UpdateUserAddress(writer http.ResponseWriter, request *http.Request) {
 	addressId, err := uuid.FromString(addressID)
 	if err != nil {
 		logrus.Error("Error in conversion: %v", err)
+		writer.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
@@ -143,12 +144,14 @@ func DeleteUserAddress(writer http.ResponseWriter, request *http.Request) {
 	addressId, err := uuid.FromString(addressID)
 	if err != nil {
 		logrus.Error("Error in conversion: %v", err)
+		writer.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
 	err = helper.DeleteAddress(addressId)
 	if err != nil {
 		logrus.Error("DeleteUserAddress: Error in deleting UserAddress %v", err)
+		writer.WriteHeader(http.StatusBadRequest)
 		writer.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -173,6 +176,7 @@ func AddPaymentDetails(writer http.ResponseWriter, request *http.Request) {
 	userId, err := uuid.FromString(ctx.ID)
 	if err != nil {
 		logrus.Error("Error in conversion: %v", err)
+		writer.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
@@ -189,6 +193,7 @@ func BuyProduct(writer http.ResponseWriter, request *http.Request) {
 	productId, err := uuid.FromString(productID)
 	if err != nil {
 		logrus.Error("BuyProduct:Error in conversion: %v", err)
+		writer.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	ctx := helper.GetContextData(request)
@@ -233,6 +238,7 @@ func BuyProduct(writer http.ResponseWriter, request *http.Request) {
 	sessionId, err := helper.GetCartSessionId(productId)
 	if err != nil {
 		logrus.Error("BuyProduct:Error in conversion: %v", err)
+		writer.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	RemainingQuantity := productQuantity - CartItemQuantity
@@ -337,6 +343,30 @@ func GetOrderDetails(writer http.ResponseWriter, request *http.Request) {
 	})
 	if txErr != nil {
 		writer.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+}
+
+func DeleteUserAccount(writer http.ResponseWriter, request *http.Request) {
+	ctx := helper.GetContextData(request)
+	if ctx == nil {
+		logrus.Error("DeleteUserAccount:error in conversion")
+		writer.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	userId, err := uuid.FromString(ctx.ID)
+	if err != nil {
+		logrus.Error("DeleteUserAccount:Error in conversion: %v", err)
+		writer.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	err = helper.DeleteUserAccount(userId)
+	if err != nil {
+		logrus.Error("DeleteUserAccount:error in deleting user account")
+		writer.WriteHeader(http.StatusBadRequest)
 		return
 	}
 

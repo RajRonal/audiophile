@@ -69,6 +69,7 @@ func CreateProduct(writer http.ResponseWriter, request *http.Request) {
 	categoryID, err := uuid.FromString(categoryId)
 	if err != nil {
 		logrus.Error("Error in conversion: %v", err)
+		writer.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
@@ -76,6 +77,7 @@ func CreateProduct(writer http.ResponseWriter, request *http.Request) {
 	inventoryID, err := uuid.FromString(inventoryId)
 	if err != nil {
 		logrus.Error("Error in conversion: %v", err)
+		writer.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
@@ -105,6 +107,7 @@ func DeleteProduct(writer http.ResponseWriter, request *http.Request) {
 	productID, err := uuid.FromString(productId)
 	if err != nil {
 		logrus.Error("DeleteProduct:Error in conversion: %v", err)
+		writer.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	err = helper.DeleteProduct(productID)
@@ -127,6 +130,7 @@ func UpdateProduct(writer http.ResponseWriter, request *http.Request) {
 	productID, err := uuid.FromString(productId)
 	if err != nil {
 		logrus.Error("Error in conversion: %v", err)
+		writer.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	err = helper.UpdateProduct(productID, product.ProductName, product.ProductDescription)
@@ -168,6 +172,7 @@ func UpdateProductCategory(writer http.ResponseWriter, request *http.Request) {
 	categoryID, err := uuid.FromString(categoryId)
 	if err != nil {
 		logrus.Error("Error in conversion: %v", err)
+		writer.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	err = helper.UpdateCategory(categoryID, categoryDetails)
@@ -184,6 +189,7 @@ func DeleteProductCategory(writer http.ResponseWriter, request *http.Request) {
 	categoryID, err := uuid.FromString(categoryId)
 	if err != nil {
 		logrus.Error("DeleteProductCategory:Error in conversion: %v", err)
+		writer.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	err = helper.DeleteProductCategory(categoryID)
@@ -209,11 +215,13 @@ func UpdateProductInventory(writer http.ResponseWriter, request *http.Request) {
 	categoryID, err := uuid.FromString(categoryId)
 	if err != nil {
 		logrus.Error("Error in conversion: %v", err)
+		writer.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	inventoryID, err := uuid.FromString(inventoryId)
 	if err != nil {
 		logrus.Error("Error in conversion: %v", err)
+		writer.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	err = helper.UpdateProductInventory(categoryID, inventoryID, inventoryDetails.Quantity)
@@ -230,6 +238,7 @@ func DeleteProductInventory(writer http.ResponseWriter, request *http.Request) {
 	inventoryID, err := uuid.FromString(inventoryId)
 	if err != nil {
 		logrus.Error(" DeleteProductInventory:Error in conversion: %v", err)
+		writer.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	err = helper.DeleteProductInventory(inventoryID)
@@ -247,6 +256,7 @@ func UploadProductImage(writer http.ResponseWriter, request *http.Request) {
 	productID, err := uuid.FromString(productId)
 	if err != nil {
 		logrus.Error(" UploadProductImage:Error in conversion: %v", err)
+		writer.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	client := models.App{}
@@ -263,12 +273,14 @@ func UploadProductImage(writer http.ResponseWriter, request *http.Request) {
 	client.Client, err = app.Firestore(client.Ctx)
 	if err != nil {
 		logrus.Error(err)
+		writer.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
 	client.Storage, err = cloud.NewClient(client.Ctx, credentialsFile)
 	if err != nil {
 		logrus.Error(err)
+		writer.WriteHeader(http.StatusBadRequest)
 		return
 	}
 

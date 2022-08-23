@@ -76,46 +76,46 @@ func SignUp(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 }
-func Login(w http.ResponseWriter, r *http.Request) {
+func Login(writer http.ResponseWriter, request *http.Request) {
 	var credentials models.Credential
-	err := json.NewDecoder(r.Body).Decode(&credentials)
+	err := json.NewDecoder(request.Body).Decode(&credentials)
 	if err != nil {
 		logrus.Error("Login: Error in decoding json %v", err)
-		w.WriteHeader(http.StatusBadRequest)
+		writer.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
 	if credentials.Username == "" || credentials.Password == "" {
-		w.WriteHeader(http.StatusUnauthorized)
+		writer.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 
 	userDetails, err := helper.UserLogin(credentials.Username)
 	if err != nil {
 		logrus.Error("Login: Error in getting password %v", err)
-		w.WriteHeader(http.StatusUnauthorized)
+		writer.WriteHeader(http.StatusUnauthorized)
 	}
 
 	if compareErr := bcrypt.CompareHashAndPassword([]byte(userDetails.Password), []byte(credentials.Password)); compareErr != nil {
 		logrus.Printf("Signin : Error in comparing the passwords.")
-		w.WriteHeader(http.StatusUnauthorized)
+		writer.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 	//if userDetails.Password != credentials.Password {
-	//	w.WriteHeader(http.StatusUnauthorized)
+	//	writer.WriteHeader(http.StatusUnauthorized)
 	//}
 
 	userRole, err := helper.GetRole(userDetails.UserId)
 	if err != nil {
 		logrus.Error("Login: Error in Getting Role of User %v", err)
-		w.WriteHeader(http.StatusInternalServerError)
+		writer.WriteHeader(http.StatusInternalServerError)
 	}
 
 	expirationTime := time.Now().Add(time.Hour * 7)
 	sessionID, err := helper.CreateSession(userDetails.UserId, expirationTime)
 	if err != nil {
 		logrus.Error("LogIn : Error in Creating the session %v", err)
-		w.WriteHeader(http.StatusUnauthorized)
+		writer.WriteHeader(http.StatusUnauthorized)
 	}
 
 	mapClaim := &claims.MapClaims{
@@ -130,16 +130,16 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, mapClaim)
 	signedToken, err := token.SignedString([]byte("secureSecretText"))
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+		writer.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	tokenByte, err := json.Marshal(signedToken)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+		writer.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	fmt.Println(signedToken)
-	_, _ = w.Write(tokenByte)
+	_, _ = writer.Write(tokenByte)
 }
 
 func GetAllProducts(writer http.ResponseWriter, request *http.Request) {
@@ -178,40 +178,40 @@ func GetAllProducts(writer http.ResponseWriter, request *http.Request) {
 
 }
 
-func GetAllImageDetails(writer http.ResponseWriter, request *http.Request) {
-	pageNo := request.URL.Query().Get("page")
-	if pageNo == strings.TrimSpace("") {
-		pageNo = "0"
-	}
-	Page, err := strconv.Atoi(pageNo)
-	if err != nil {
-		writer.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	limitSize := request.URL.Query().Get("limit")
-	if limitSize == strings.TrimSpace("") {
-		limitSize = "5"
-	}
-	Limit, err := strconv.Atoi(limitSize)
-	if err != nil {
-		writer.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	products, err := helper.GetAllImageId(Page, Limit)
-	if err != nil {
-		logrus.Error("GetAllImageDetails: Images  can't be fetched %v", err)
-		writer.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	errs := json.NewEncoder(writer).Encode(products)
-	if errs != nil {
-		writer.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-}
+//func GetAllImageDetails(writer http.ResponseWriter, request *http.Request) {
+//	pageNo := request.URL.Query().Get("page")
+//	if pageNo == strings.TrimSpace("") {
+//		pageNo = "0"
+//	}
+//	Page, err := strconv.Atoi(pageNo)
+//	if err != nil {
+//		writer.WriteHeader(http.StatusBadRequest)
+//		return
+//	}
+//	limitSize := request.URL.Query().Get("limit")
+//	if limitSize == strings.TrimSpace("") {
+//		limitSize = "5"
+//	}
+//	Limit, err := strconv.Atoi(limitSize)
+//	if err != nil {
+//		writer.WriteHeader(http.StatusBadRequest)
+//		return
+//	}
+//
+//	products, err := helper.GetAllImageId(Page, Limit)
+//	if err != nil {
+//		logrus.Error("GetAllImageDetails: Images  can't be fetched %v", err)
+//		writer.WriteHeader(http.StatusBadRequest)
+//		return
+//	}
+//
+//	errs := json.NewEncoder(writer).Encode(products)
+//	if errs != nil {
+//		writer.WriteHeader(http.StatusInternalServerError)
+//		return
+//	}
+//
+//}
 
 func SignOut(writer http.ResponseWriter, request *http.Request) {
 	uc := helper.GetContextData(request)

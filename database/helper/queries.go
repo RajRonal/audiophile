@@ -137,13 +137,13 @@ func CreateProduct(product []models.Product, categoryId, inventoryId uuid.UUID, 
 		insertQuery.Values(products.ProductName, products.ProductDescription, products.RegularPrice, products.DiscountedPrice, categoryId, inventoryId)
 	}
 
-	sql, args, err := insertQuery.ToSql()
+	SQL, args, err := insertQuery.ToSql()
 	if err != nil {
 		logrus.Error("CreateProducts : Error in making the query")
 		return err
 	}
 
-	_, err = tx.Exec(sql, args...)
+	_, err = tx.Exec(SQL, args...)
 	if err != nil {
 		logrus.Error("CreateProduct : Error in Adding product")
 		return err
@@ -190,27 +190,28 @@ func CreateCoupon(couponDetails models.Coupon) error {
 	return nil
 }
 
-func GetAllProducts(pageNo, taskSize int, searchProduct string) (models.PaginatedImageDetails, error) {
-	var data models.PaginatedImageDetails
-	SQL := `WITH  getProducts AS (SELECT count(*) over () total_count,
+func GetAllProducts(pageNo, taskSize int, searchProduct string) (models.PaginatedInventoryProductDetails, error) {
+	var data models.PaginatedInventoryProductDetails
+	SQL := `SELECT count(*) total_count,
 										product.product_id,
 										product_name,
 										product_description,
 										regular_price,
 										discounted_price,
-										image_id
+										   ARRAY_AGG(image_id) AS image_id
 								 FROM product
 										  JOIN image_details ON product.product_id = image_details.product_id
 								 where product.product_name ILIKE '%' || $3 || '%'
-								   AND archived_at IS NULL)
+								   AND archived_at IS NULL
+                                    GROUP BY product.product_id
+                                    LIMIT $1
+                                    OFFSET $2
 								
 								
 			
-			SELECT total_count, product_id, product_name, product_description, regular_price, discounted_price,image_id 
-			from getProducts
-			LIMIT $1 OFFSET $2`
+			`
 
-	products := make([]models.ImageDetails, 0)
+	products := make([]models.InventoryProductDetails, 0)
 	err := database.DB.Select(&products, SQL, taskSize, pageNo*taskSize, searchProduct)
 	if err != nil {
 		logrus.Error("SearchProduct: error in fetching Product: %v", err)
@@ -289,30 +290,30 @@ func InsertImageDetails(imageId string, productId uuid.UUID) error {
 	return nil
 }
 
-func GetAllImageId(pageNo, taskSize int) (models.PaginatedImageDetails, error) {
-	var data models.PaginatedImageDetails
-	SQL := `WITH getImages AS (SELECT  count(*) over ()total_count,image_id, product_id
-			FROM image_details)
-			
-			 SELECT  total_count,image_id,product_id from getImages
-			        LIMIT $1
-					OFFSET $2`
-
-	images := make([]models.ImageDetails, 0)
-	err := database.DB.Select(&images, SQL, taskSize, pageNo*taskSize)
-	if err != nil {
-		logrus.Error("SGetAllImageId: error in fetching Images: %v", err)
-		return data, err
-	}
-
-	if len(images) == 0 {
-		return data, err
-	}
-
-	data.TotalCount = images[0].TotalCount
-	data.Details = images
-	return data, err
-}
+//func GetAllImageId(pageNo, taskSize int) (models.PaginatedImageDetails, error) {
+//	var data models.PaginatedImageDetails
+//	SQL := `WITH getImages AS (SELECT  count(*) over ()total_count,image_id, product_id
+//			FROM image_details)
+//
+//			 SELECT  total_count,image_id,product_id from getImages
+//			        LIMIT $1
+//					OFFSET $2`
+//
+//	images := make([]models.ImageDetails, 0)
+//	err := database.DB.Select(&images, SQL, taskSize, pageNo*taskSize)
+//	if err != nil {
+//		logrus.Error("SGetAllImageId: error in fetching Images: %v", err)
+//		return data, err
+//	}
+//
+//	if len(images) == 0 {
+//		return data, err
+//	}
+//
+//	data.TotalCount = images[0].TotalCount
+//	data.Details = images
+//	return data, err
+//}
 
 func AddToCart(sessionId uuid.UUID, productDetails models.CartProduct) error {
 	SQL := `INSERT INTO cart_item (session_id,product_id,coupon_id,quantity) 	
@@ -535,4 +536,16 @@ func GetCartSessionId(productId uuid.UUID) (uuid.UUID, error) {
 
 	return sessionId, nil
 
+}
+
+func DeleteUserAccount(userId uuid.UUID) error {
+	SQL := `UPDATE users
+			  SET archived_at= now()
+			  WHERE user_id= $1`
+	_, err := database.DB.Exec(SQL, userId)
+	if err != nil {
+		logrus.Error("DeleteUserAccount: error in Deleting user: %v", err)
+		return err
+	}
+	return err
 }

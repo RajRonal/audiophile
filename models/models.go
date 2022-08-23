@@ -5,6 +5,7 @@ import (
 	cloud "cloud.google.com/go/storage"
 	"context"
 	"github.com/gofrs/uuid"
+	"github.com/lib/pq"
 )
 
 type CreateUser struct {
@@ -89,22 +90,22 @@ type App struct {
 	Storage *cloud.Client
 }
 
-type ImageDetails struct {
-	ProductId          string  `json:"productId"db:"product_id"`
-	ProductName        string  `json:"productName" db:"product_name"`
-	ProductDescription string  `json:"productDescription" db:"product_description"`
-	RegularPrice       float64 `json:"regularPrice" db:"regular_price"`
-	DiscountedPrice    float64 `json:"discountedPrice" db:"discounted_price"`
-	ImageId            string  `json:"imageId" db:"image_id"`
-	TotalCount         int     `json:"-" db:"total_count"`
+type InventoryProductDetails struct {
+	ProductId          string         `json:"productId"db:"product_id"`
+	ProductName        string         `json:"productName" db:"product_name"`
+	ProductDescription string         `json:"productDescription" db:"product_description"`
+	RegularPrice       float64        `json:"regularPrice" db:"regular_price"`
+	DiscountedPrice    float64        `json:"discountedPrice" db:"discounted_price"`
+	ImageId            pq.StringArray `json:"imageId" db:"image_id"`
+	TotalCount         int            `json:"-" db:"total_count"`
 }
 
-type Image struct {
-	Images string `json:"images"`
-}
-type PaginatedImageDetails struct {
-	Details    []ImageDetails `json:"details"`
-	TotalCount int            `json:"totalCount"`
+//type Image struct {
+//	Images string `json:"images"`
+//}
+type PaginatedInventoryProductDetails struct {
+	Details    []InventoryProductDetails `json:"details"`
+	TotalCount int                       `json:"totalCount"`
 }
 
 type CartProduct struct {
