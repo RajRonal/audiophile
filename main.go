@@ -5,11 +5,10 @@ import (
 	"audioPhile/server"
 	"fmt"
 	"github.com/sirupsen/logrus"
-	"os"
 )
 
 func main() {
-	err := database.ConnectAndMigrate(os.Getenv("host"), os.Getenv("port"), os.Getenv("databaseName"), os.Getenv("user"), os.Getenv("password"), database.SSLModeDisable)
+	err := database.ConnectAndMigrate("localhost", "5432", "audiophile", "local", "local", database.SSLModeDisable)
 	if err != nil {
 		logrus.Fatal(err)
 		return

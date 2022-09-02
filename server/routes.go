@@ -14,6 +14,7 @@ type Server struct {
 func SetupRoutes() *Server {
 	router := chi.NewRouter()
 	router.Route("/api", func(api chi.Router) {
+		//api.Post("/create",)
 		api.Post("/signup", handlers.SignUp)
 		api.Post("/login", handlers.Login)
 		api.Route("/audiophile", func(r chi.Router) {

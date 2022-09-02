@@ -26,10 +26,6 @@ const (
 	UserRoleAdmin UserRole  = "admin"
 	UserRoleUser  UserRole  = "user"
 	ClaimKey      ClaimsKey = "claim"
-	//DebitCard     PaymentTypes = "debit card"
-	//CreditCard    PaymentTypes = "credit card"
-	//Upi           PaymentTypes = "upi"
-	//OnlineBanking PaymentTypes = "online banking"
 )
 
 type Credential struct {

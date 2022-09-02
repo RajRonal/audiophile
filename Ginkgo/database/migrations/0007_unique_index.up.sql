@@ -1,0 +1,1 @@
+create unique index category_index ON  product_categories (category_name,category_description) where (archived_at is null);
